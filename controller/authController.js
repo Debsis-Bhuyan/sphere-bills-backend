@@ -1,21 +1,31 @@
 import Users from "../models/userModel.js";
 import { compareString, createJWT, hashString } from "../utils/index.js";
 
-export const register = async (req, res, next) => {
+export const register = async (req, res) => {
   const { fullName, email, password, profileUrl } = req.body;
+  console.log(fullName, email, password, profileUrl)
 
   //validate fileds
   if (!(fullName || email || password, profileUrl)) {
-    next("Provide Required Fields!");
-    return;
+    return res.status(200).json({
+      success: false,
+      message: "Please fill all the required fields.",
+    });
   }
-
+  if (password.length < 8) {
+    return res.status(200).json({
+      success: false,
+      message: "Please enter minimum 8 character in password fields.",
+    });
+  }
   try {
     const userExist = await Users.findOne({ email });
 
     if (userExist) {
-      next("Email Address already exists");
-      return;
+      return res.status(200).json({
+        success: false,
+        message: "User already exists in the system. Please try logging in.",
+      });
     }
 
     const hashedPassword = await hashString(password);
@@ -38,41 +48,48 @@ export const register = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(404).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+    });
   }
 };
 
-export const login = async (req, res, next) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     //validation
     if (!email || !password) {
-      next("Please Provide User Credentials");
-      return;
+      return res.status(200).json({
+        success: false,
+        message: "Please fill all the required fields.",
+      });
     }
-
+    if (password.length < 8) {
+      return res.status(200).json({
+        success: false,
+        message: "Please enter minimum 8 character in password fields.",
+      });
+    }
     // find user by email
     const user = await Users.findOne({ email }).select("+password");
 
     if (!user) {
-      next("Invalid email or password");
-      return;
+      return res.status(200).json({
+        success: false,
+        message: "User does not exists in the system. Please register.",
+      });
     }
-
-    // if (!user?.verified) {
-    //   next(
-    //     "User email is not verified. Check your email account and verify your email"
-    //   );
-    //   return;
-    // }
 
     // compare password
     const isMatch = await compareString(password, user?.password);
 
     if (!isMatch) {
-      next("Invalid email or password");
-      return;
+      return res.status(200).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
     }
 
     user.password = undefined;
@@ -87,7 +104,10 @@ export const login = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    res.status(404).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+    });
   }
 };
 
@@ -96,23 +116,34 @@ export const changePassword = async (req, res, next) => {
     const { userId, email, oldpassword, newpassword } = req.body;
     const user = await Users.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(200).json({
+        success: false,
+        message: "User not found in the system.",
+      });
     }
 
     const isMatch = await compareString(oldpassword, user?.password);
     if (!isMatch) {
-      res.json({ message: "Old password is incorrect" });
-      return;
+      return res.status(200).json({
+        success: false,
+        message: "Old password is incorrect.",
+      });
+      
     }
-    // Change password
+
     const hashedPassword = await hashString(newpassword);
     user.password = hashedPassword;
     await user.save();
-
-    res.json({ message: "Password changed successfully" });
+    res.status(201).json({
+      success: false,
+      message: "Password changed successfully.",
+    });
   } catch (error) {
     console.log(error);
-    res.status(404).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+    });
   }
 };
 
@@ -159,15 +190,15 @@ export const updateProfile = async (req, res) => {
   } = req.body;
   const userExist = Users.findById(userId);
   if (!userExist) {
-    return res.status(404).json({ msg: "User not found" });
+    return res.status(200).json({ message: "User not found" });
   }
   try {
     // Update the user document in the database
     const user = await Users.findByIdAndUpdate(
       userId,
       {
-      
         phoneNo,
+        fullName,
         email,
         businessName,
         pincode,
@@ -180,9 +211,9 @@ export const updateProfile = async (req, res) => {
     ); // { new: true } ensures the updated document is returned
 
     console.log("User updated successfully:", user);
-    res.json({ msg: "Profile updated successfully", user });
+    res.status(201).json({ message: "Profile updated successfully", user });
   } catch (error) {
     console.error("Error updating profile:", error);
-    res.status(500).json({ msg: "Failed to update profile" });
+    res.status(500).json({ message: "Failed to update profile" });
   }
 };

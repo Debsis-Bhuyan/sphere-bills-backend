@@ -6,6 +6,8 @@ import cors from "cors";
 import dbConnect from "./db/database.js";
 import morgan from "morgan";
 const app = express();
+const port = process.env.PORT || 8080;
+
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -19,7 +21,6 @@ app.use(morgan("dev"));
 app.use("/api", route);
 app.use(errorMiddleware);
 
-const port = process.env.PORT || 5001;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });

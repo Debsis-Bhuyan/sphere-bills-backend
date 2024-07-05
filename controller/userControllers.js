@@ -80,7 +80,7 @@ export const requestPasswordReset = async (req, res) => {
     const user = await Users.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: "FAILED",
         message: "Email address not found.",
       });
@@ -91,7 +91,7 @@ export const requestPasswordReset = async (req, res) => {
       if (existingRequest.expiresAt > Date.now()) {
         return res.status(201).json({
           status: "PENDING",
-          message: "Reset password link has already been sent tp your email.",
+          message: "Reset password link has already been sent to your email.",
         });
       }
       await PasswordReset.findOneAndDelete({ email });
@@ -112,7 +112,7 @@ export const resetPassword = async (req, res) => {
 
     if (!user) {
       const message = "Invalid password reset link. Try again";
-      res.status(400).json({ status: "error", message });
+      res.status(200).json({ status: "error", message });
     }
 
     const resetPassword = await PasswordReset.findOne({ userId });
@@ -134,8 +134,7 @@ export const resetPassword = async (req, res) => {
         const message = "Invalid reset password link. Please try again";
         return res.status(400).json({ status: "error", message });
       } else {
-        return (type = "reset");
-        res.status(201).json({ status: "reset", userId });
+        return res.status(201).json({ status: "reset", userId });
       }
     }
   } catch (error) {
@@ -169,75 +168,76 @@ export const updatePassword = async (req, res, next) => {
   }
 };
 
-export const getUser = async (req, res, next) => {
-  try {
-    const { userId } = req.body.user;
-    const { id } = req.params;
+// export const getUser = async (req, res, next) => {
+//   try {
+//     const { userId } = req.body.user;
+//     const { id } = req.params;
 
-    const user = await Users.findById(id ?? userId).populate({
-      path: "friends",
-      select: "-password",
-    });
+//     const user = await Users.findById(id ?? userId).populate({
+//       path: "friends",
+//       select: "-password",
+//     });
 
-    if (!user) {
-      return res.status(200).send({
-        message: "User Not Found",
-        success: false,
-      });
-    }
+//     if (!user) {
+//       return res.status(200).send({
+//         message: "User Not Found",
+//         success: false,
+//       });
+//     }
 
-    user.password = undefined;
+//     user.password = undefined;
 
-    res.status(200).json({
-      success: true,
-      user: user,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "auth error",
-      success: false,
-      error: error.message,
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       user: user,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({
+//       message: "auth error",
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// };
 
-export const updateUser = async (req, res, next) => {
-  try {
-    const { firstName, lastName, location, profileUrl, profession } = req.body;
+// export const updateUser = async (req, res, next) => {
+//   try {
+//     const { firstName, lastName, location, profileUrl, profession } = req.body;
 
-    if (!(firstName || lastName || contact || profession || location)) {
-      next("Please provide all required fields");
-      return;
-    }
+//     if (!(firstName || lastName || contact || profession || location)) {
+//       next("Please provide all required fields");
+//       return;
+//     }
 
-    const { userId } = req.body.user;
+//     const { userId } = req.body.user;
 
-    const updateUser = {
-      firstName,
-      lastName,
-      location,
-      profileUrl,
-      profession,
-      _id: userId,
-    };
-    const user = await Users.findByIdAndUpdate(userId, updateUser, {
-      new: true,
-    });
+//     const updateUser = {
+//       firstName,
+//       lastName,
+//       location,
+//       profileUrl,
+//       profession,
+//       _id: userId,
+//     };
+//     const user = await Users.findByIdAndUpdate(userId, updateUser, {
+//       new: true,
+//     });
 
-    await user.populate({ path: "friends", select: "-password" });
-    const token = createJWT(user?._id);
+//     await user.populate({ path: "friends", select: "-password" });
+//     const token = createJWT(user?._id);
 
-    user.password = undefined;
+//     user.password = undefined;
 
-    res.status(200).json({
-      sucess: true,
-      message: "User updated successfully",
-      user,
-      token,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(404).json({ message: error.message });
-  }
-};
+//     res.status(200).json({
+//       sucess: true,
+//       message: "User updated successfully",
+//       user,
+//       token,
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(404).json({ message: error.message });
+//   }
+// };
+
