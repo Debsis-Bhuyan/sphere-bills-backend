@@ -3,6 +3,7 @@ import Help from "../models/helpModel.js";
 import fs from "fs";
 import pdf from "html-pdf";
 import { sendInvoicePdf } from "../utils/sendMails.js";
+import { generateFileName } from "../utils/index.js";
 
 export const feedbackForm = async (req, res) => {
   const { userId, fullName, email, message } = req.body;
@@ -15,7 +16,9 @@ export const feedbackForm = async (req, res) => {
       message,
     });
 
-    res.status(201).json({ message: "Feedback received successfully", feedback });
+    res
+      .status(201)
+      .json({ message: "Feedback received successfully", feedback });
   } catch (error) {
     console.error("Error saving feedback:", error);
     res.status(500).json({ error: "An error occurred while saving feedback" });
@@ -37,16 +40,42 @@ export const helpForm = async (req, res) => {
 export const sendInvoice = async (req, res) => {
   // Generate HTML content for invoice
   const { data, email } = req.body;
-  console.log(data);
-  console.log(email);
-  const { user, partyData, purchaseDetails, amount, type } = data;
-  console.log(amount, type);
 
-  console.log(user, purchaseDetails, partyData);
+  const { user, partyData, purchaseDetails, amount, type } = data;
+
+  const result = purchaseDetails;
+  let htmlPurchaseData = `<tbody>`;
+  if (result && result.length > 0) {
+    for (let i = 0; i < result.length; i++) {
+      const purchase = result[i];
+      htmlPurchaseData += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${purchase.item}</td>
+          <td>${purchase.qty}</td>
+          <td>${purchase.unit}</td>
+          <td>${purchase.pricePerUnit}</td>
+          <td>${purchase.tax}</td>
+          <td>${purchase.amount}</td>
+        </tr>
+      `;
+    }
+  } else {
+    htmlPurchaseData += `
+      <tr>
+        <td colspan="7">No data available</td>
+      </tr>
+    `;
+  }
+
+  htmlPurchaseData += `
+        </tbody>
+  `;
+
   const generateHTMLInvoice = () => {
-     let html = `
-      <div>
-        <style>
+    let html = `
+    <body>
+    <style>
           body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -183,6 +212,8 @@ export const sendInvoice = async (req, res) => {
             background-color: #0c5ab8;
           }
         </style>
+      <div>
+        
         <div class="container">
           <header class="header">
             <div class="header-left">
@@ -224,7 +255,8 @@ export const sendInvoice = async (req, res) => {
                 <th>Amount</th>
               </tr>
             </thead>
-            <tbody id="purchaseList">hello</tbody>
+            
+            ${htmlPurchaseData}
             <tfoot>
               <tr>
                 <td colspan="2" class="text-right">Total quantity:</td>
@@ -262,63 +294,42 @@ export const sendInvoice = async (req, res) => {
           </div>
            
         </div>
-        <script>
-        const result =${purchaseDetails}
-        const purchaseList = document.getElementById("purchaseList");
-         if (result && result.length > 0) {
-           for (let i = 0; i < result.length; i++) {
-             const purchase = result[i];
-             const row = document.createElement("tr");
-             row.innerHTML = 
-               <td>i + 1</td>
-               <td>purchase.item</td>
-               <td>purchase.qty</td>
-               <td>purchase.unit</td>
-               <td>purchase.pricePerUnit</td>
-               <td>purchase.tax</td>
-               <td>purchase.amount</td>
-           ;
-          
-             purchaseList.appendChild(row);
-           }
-         } else {
-           const row = document.createElement("tr");
-          row.innerHTML = <td colspan="7">No data available</td>;
-           purchaseList.appendChild(row);
-         }
-       </script>
+       
       </div>
+       </body>
       `;
 
-    return  html;
+    return html;
   };
 
   // Generate PDF invoice from HTML content
   const generatePDFInvoice = (htmlContent) => {
-      pdf.create(htmlContent).toFile("./billingData/invoice.pdf", (err) => {
+    const invoiceName = generateFileName();
+    pdf.create(htmlContent).toFile(`./billingData/${invoiceName}`, (err) => {
       if (err) {
         console.error(err);
         return res
           .status(500)
           .json({ success: false, message: "Failed to generate PDF" });
       }
-       sendInvoicePdf(email, res);
+      sendInvoicePdf(email, invoiceName, res);
       console.log("PDF invoice generated successfully");
+      setTimeout(async () => {
+        console.log(invoiceName);
+        await fs.unlink(`./billingData/${invoiceName}`, function (err) {
+          if (err) return console.log(err);
+          console.log("file deleted successfully");
+        });
+      }, 1000);
       res.status(200).json({
         success: true,
         message: "PDF invoice generated successfully",
-        invoiceFilePath: "invoice.pdf",
+        invoiceFilePath: invoiceName,
       });
     });
   };
 
   // Call functions to generate HTML content and PDF invoice
-  const htmlContent =await generateHTMLInvoice();
- await generatePDFInvoice(htmlContent);
-  setTimeout(() => {
-    fs.unlink("./billingData/invoice.pdf", function (err) {
-      if (err) return console.log(err);
-      console.log("file deleted successfully");
-    });
-  }, 20000);
+  const htmlContent = await generateHTMLInvoice();
+  await generatePDFInvoice(htmlContent);
 };

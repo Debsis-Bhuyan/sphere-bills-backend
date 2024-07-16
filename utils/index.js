@@ -19,3 +19,19 @@ export function createJWT(id) {
     expiresIn: "1d",
   });
 }
+export function generateFileName() {
+  const currentDate = new Date();
+  console.log(currentDate);
+
+  let year = currentDate.getFullYear();
+  let month = String(currentDate.getMonth() + 1);
+  let day = String(currentDate.getDate());
+  const dateFormatted = year + month + day;
+
+  const hours = String(currentDate.getHours());
+  const minutes = String(currentDate.getMinutes());
+  const timeFormatted = hours + minutes;
+
+  const fileName = "file_$" + dateFormatted + "_$" + timeFormatted + ".pdf";
+  return fileName;
+}

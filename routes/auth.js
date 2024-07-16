@@ -9,15 +9,20 @@ import {
   register,
   changePassword,
   updateProfile,
+  getProfileData,
 } from "../controller/authController.js";
 
 router.post("/register", register);
 
 router.post("/login", login);
-router.post("/forget-password", requestPasswordReset);
-router.post("/update-password", updatePassword);
+router.get("/get-profile/:userId", getProfileData);
+
 
 import authenticateUser from "../middleware/authMiddleware.js";
+
+router.post("/forget-password",authenticateUser, requestPasswordReset);
+router.post("/update-password",authenticateUser, updatePassword);
+
 router.post("/reset-password", authenticateUser, changePassword);
 router.put("/update-profile", authenticateUser, updateProfile);
 

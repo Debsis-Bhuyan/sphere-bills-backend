@@ -135,12 +135,12 @@ export const resetPasswordLink = async (user, res) => {
     res.status(404).json({ message: "Something went wrong" });
   }
 };
-export const sendInvoicePdf = (email, res) => {
+export const sendInvoicePdf = (email,fileName, res) => {
   //   mail options
   console.log(email);
   let mailOptions;
   
-  fs.readFile("./billingData/invoice.pdf", function (err, data) {
+  fs.readFile(`./billingData/${fileName}`, function (err, data) {
     if (err) throw err;
     mailOptions = {
       from: AUTH_EMAIL,
@@ -148,7 +148,6 @@ export const sendInvoicePdf = (email, res) => {
       subject: "Invoice attachment on billing",
       html: `<div
     style='font-family: Arial, sans-serif; font-size: 20px; color: #333; background-color: #f7f7f7; padding: 20px; border-radius: 5px;'>
-    <h3 style="color: rgb(8, 56, 188)">Please verify your email address</h3>
     <hr>
     <h4>Hi Debasis,</h4>
     <p>
@@ -168,7 +167,7 @@ export const sendInvoicePdf = (email, res) => {
 
       attachments: [
         {
-          filename: "invoice.pdf",
+          filename:fileName ,
           content: data,
           contentType: "application/pdf",
         },

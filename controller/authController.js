@@ -1,25 +1,31 @@
 import Users from "../models/userModel.js";
 import { compareString, createJWT, hashString } from "../utils/index.js";
 
+
 export const register = async (req, res) => {
   const { fullName, email, password, profileUrl } = req.body;
-  console.log(fullName, email, password, profileUrl)
+  console.log(fullName, email, password, profileUrl);
 
-  //validate fileds
-  if (!(fullName || email || password, profileUrl)) {
+  // Validate fields
+  if (!(fullName && email && password && profileUrl)) {
     return res.status(200).json({
       success: false,
       message: "Please fill all the required fields.",
     });
   }
+  
   if (password.length < 8) {
     return res.status(200).json({
       success: false,
-      message: "Please enter minimum 8 character in password fields.",
+      message: "Please enter a minimum of 8 characters in the password field.",
     });
   }
+
+  // Convert email to lowercase
+  const lowerCaseEmail = email.toLowerCase();
+
   try {
-    const userExist = await Users.findOne({ email });
+    const userExist = await Users.findOne({ email: lowerCaseEmail });
 
     if (userExist) {
       return res.status(200).json({
@@ -32,17 +38,17 @@ export const register = async (req, res) => {
 
     const user = await Users.create({
       fullName,
-      email,
+      email: lowerCaseEmail,
       password: hashedPassword,
       profileUrl,
     });
+    
     const token = createJWT(user?._id);
-    //send email verification to user
-    // sendVerificationEmail(user, res);
+    // sendVerificationEmail(user, res); // Uncomment if email verification is needed
 
     res.status(201).json({
       success: true,
-      message: "SignUp successfully",
+      message: "Sign up successfully",
       user,
       token,
     });
@@ -55,11 +61,12 @@ export const register = async (req, res) => {
   }
 };
 
+
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    //validation
+    // Validation
     if (!email || !password) {
       return res.status(200).json({
         success: false,
@@ -69,20 +76,24 @@ export const login = async (req, res) => {
     if (password.length < 8) {
       return res.status(200).json({
         success: false,
-        message: "Please enter minimum 8 character in password fields.",
+        message: "Please enter a minimum of 8 characters in the password field.",
       });
     }
-    // find user by email
-    const user = await Users.findOne({ email }).select("+password");
+
+    // Convert email to lowercase
+    const lowerCaseEmail = email.toLowerCase();
+
+    // Find user by email
+    const user = await Users.findOne({ email: lowerCaseEmail }).select("+password");
 
     if (!user) {
       return res.status(200).json({
         success: false,
-        message: "User does not exists in the system. Please register.",
+        message: "User does not exist in the system. Please register.",
       });
     }
 
-    // compare password
+    // Compare password
     const isMatch = await compareString(password, user?.password);
 
     if (!isMatch) {
@@ -128,7 +139,6 @@ export const changePassword = async (req, res, next) => {
         success: false,
         message: "Old password is incorrect.",
       });
-      
     }
 
     const hashedPassword = await hashString(newpassword);
@@ -215,5 +225,23 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     console.error("Error updating profile:", error);
     res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+export const getProfileData = async (req, res) => {
+  const  {userId}  = req.params;
+  if (!userId) {
+    return res.status(200).json({ error: 'User ID is required' });
+  }
+
+  try {
+    const user = await Users.findById(userId);
+    if (!user) {
+      return res.status(200).json({ error: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
